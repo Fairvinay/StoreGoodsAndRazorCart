@@ -1,0 +1,13 @@
+
+
+ #email {
+    box-shadow: 2px 2px 3px rgba(15, 17, 17, .15) inset;
+    border-radius: 7px;
+    margin: 3PX;
+}
+#password { 
+    box-shadow: 2px 2px 3px rgba(15, 17, 17, .15) inset;
+    border-radius: 7px;
+    margin: 3PX;
+
+}

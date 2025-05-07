@@ -1,0 +1,34 @@
+.custom-navbar {
+    background-color: #f0f0f0; /* light gray or any pastel */
+    color: #212529;
+  }
+#username {
+  font-weight: 800;  
+  color: #0831ff;
+  
+  font-family: Nunito, sans-serif;
+}
+#signin { 
+
+  color: #06aaeb;
+  font-weight: 800;  
+  font-family: Nunito, sans-serif;
+}
+#search-input {
+
+    box-shadow: 2px 2px 3px rgba(15, 17, 17, .15) inset;
+    border-radius: 7px;
+    margin: 3PX;
+}
+.dropdown-menu {
+    margin: 0px;
+    BORDER-COLOR: burlywood;
+    BORDER-RADIUS: 5PX;
+    BORDER-WIDTH: 2PX;
+}
+ .dropdown-item {
+
+    color: #0831ff;
+  
+  font-family: Nunito, sans-serif;
+ }

@@ -1,0 +1,81 @@
+###get products
+GET http://localhost:5000/api/products
+
+###get single product
+GET http://localhost:5000/api/products/60e45a3b78a6c41c30e7d10b
+
+###user auth - Managing user and authentication
+POST http://localhost:5000/api/user/login
+Content-Type: application/json
+
+{
+    "email":"shaikh.abbas2609@gmail.com",
+    "password":"123456"
+}
+
+###register user
+POST http://localhost:5000/api/user/register
+Content-Type: application/json
+
+{
+    "email":"shaikh.abbas2609@gmail.com",
+    "password":"123456",
+    "name":"Abbas Shaikh"
+}
+
+###get user profile
+GET http://localhost:5000/api/user/profile
+Content-Type: application/json
+Authorization:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDYwZGM2ZmYzNzEyMGE0NDJlM2VkYyIsImlhdCI6MTYyNTE0NjM2MiwiZXhwIjoxNjI1MTQ5OTYyfQ.b_i3LEZcMDTrPFQqv39_r-Sas00uajUBWwbgpMabVNg
+
+###update user profile
+PUT http://localhost:5000/api/user/profile
+Content-Type: application/json
+Authorization:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTNiZGYzNTQ5YzhlMGMwODIxMDNlZiIsImlhdCI6MTYyNTUzODY1NCwiZXhwIjoxNjI1NTQyMjU0fQ.EA0qpuZRVCc0tEGuSBen-icUSQj4jWjbr2Xf5b2q-8s
+
+{
+  "password":"123456"
+}
+
+###forgot password
+POST http://localhost:5000/api/user/forgotpassword
+Content-Type: application/json
+
+{
+  "email":"enticingwebsites@gmail.com"
+}
+
+###get my orders
+GET http://localhost:5000/api/orders/myorders
+Content-Type: application/json
+Authorization:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTQ1YTNhNzhhNmM0MWMzMGU3ZDEwNCIsImlhdCI6MTYyNTgyMjE5MywiZXhwIjoxNjI1ODI1NzkzfQ.RCJhAdf98XTa0zIzXl6ZTc4BRNmXmHYqoMdxYgQ1_2c
+
+
+### Admin Routes
+###get All Users
+GET http://localhost:5000/api/user/users
+Authorization:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTFhMmY2OTgyMzcyMTQ1NGQ0ZjdmMSIsImlhdCI6MTYyNTUzNzgwNCwiZXhwIjoxNjI1NTQxNDA0fQ.CEYXIFEP9xxqFXbE7m6-qydq_PRbc-eqf7VnSkxgMvY
+
+###Delete User - admin
+DELETE http://localhost:5000/api/user/users/60e3be04549c8e0c082103f2
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTFhMmY2OTgyMzcyMTQ1NGQ0ZjdmMSIsImlhdCI6MTYyNTUzNzgwNCwiZXhwIjoxNjI1NTQxNDA0fQ.CEYXIFEP9xxqFXbE7m6-qydq_PRbc-eqf7VnSkxgMvY
+
+###update user - admin
+PUT http://localhost:5000/api/user/users/60e3bdf3549c8e0c082103ef
+Content-Type: application/json
+Authorization:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTFhMmY2OTgyMzcyMTQ1NGQ0ZjdmMSIsImlhdCI6MTYyNTUzNzgwNCwiZXhwIjoxNjI1NTQxNDA0fQ.CEYXIFEP9xxqFXbE7m6-qydq_PRbc-eqf7VnSkxgMvY
+
+{
+  "name":"Jane Doe",
+  "isAdmin":false
+}
+
+###REVIEW PRODUCT
+POST http://localhost:5000/api/products/60e45a3b78a6c41c30e7d10b/review
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZTQ1YTNhNzhhNmM0MWMzMGU3ZDEwNSIsImlhdCI6MTYyNTg0MjAxMywiZXhwIjoxNjI1ODQ1NjEzfQ.B882DtQ7umAeL3OJb0Et-macJgXF9nUKKLyaJ2PKFBY
+
+{
+  "rating":5,
+  "comment":"Nice and handy product"
+}

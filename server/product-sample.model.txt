@@ -1,0 +1,13 @@
+   const product  =  { user: 'aidfe'+Math.random()*12 ,
+    name: response.data[i].title,
+    image: response.data[i].imgsrc ,
+    brand: response.data[i].title,
+    category: 'mobile',
+
+    description: '',
+    reviews:  [],
+    rating:  1, 
+    numReviews:  2,
+    price:  9293,
+    countInStock: 3 ,
+  } ;
