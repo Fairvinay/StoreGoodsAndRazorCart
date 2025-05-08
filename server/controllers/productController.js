@@ -17,7 +17,8 @@ const getProducts = asyncHandler(async (req, res, next) => {
       }
     : {};
   try {   //http://localhost:8080/gadgets360/vivo?pageNumber=1
-    const response = await axios.get('http://localhost:8080/gadgets360/'+req.query.keyword, {
+    // https://bb6f6125-db9c-4152-b500-ee566806723b.e1-us-east-azure.choreoapps.dev
+    const response = await axios.get(process.env.PRODUCT_URL+req.query.keyword, {
       params: {
         pageNumber: 1
       }

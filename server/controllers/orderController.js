@@ -7,8 +7,8 @@ import sendMail from "../utils/sendEmail.js";
 
 dotenv.config();
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_CLIENT_ID,
-  key_secret: process.env.RAZORPAY_SECRET,
+    key_id: process.env.RAZORPAY_CLIENT_ID || 'rzp_test_2853QGpWUiQAri' ,
+  key_secret: process.env.RAZORPAY_SECRET || 'X6WVCVKSrAkQS3EBAmkNNagW',
 });
 
 // @desc - Create new Order

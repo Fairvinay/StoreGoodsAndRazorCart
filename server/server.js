@@ -32,7 +32,9 @@ if (process.env.NODE_ENV === "development") {
 }
 
 app.use(express.json());
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:8080'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:8080',
+    'https://bb6f6125-db9c-4152-b500-ee566806723b.e1-us-east-azure.choreoapps.dev'
+];
 
 app.use(cors({
 
