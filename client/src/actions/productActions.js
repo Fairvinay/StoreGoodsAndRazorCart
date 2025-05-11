@@ -26,6 +26,47 @@ import {
 import axios from "axios";
 
 let default_keyword = "vivo";
+
+
+const getStaticProducts = asyncHandler(async (brandIn) => {
+  const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+const pages = [1];//[1, 2, 3];
+
+const promises = [];
+
+for (const brand of brands) {
+  for (const page of pages) {
+    const url =process.env.REACT_APP_SERVER_URL+`/data/${brand}Page${page}.json`; // relative path
+    promises.push(
+      axios.get(url).then(res => ({
+        brand,
+        data: res.data,
+      })).catch(err => {
+        console.error(`❌ Failed to load ${url}`, err.message);
+        return { brand, data: [] };
+      })
+    );
+  }
+}
+
+const results = await Promise.all(promises);
+
+const allData = {};
+brands.forEach(brand => {
+  allData[brand] = results
+    .filter(r => r.brand === brand)
+    .flatMap(r => r.data);
+   // allData[brand] = allData[brand].forEach(console.log);
+   console.log(allData[brand][0]);
+   // localStorage.setItem(brand, JSON.stringify(allData[brand] ));
+});
+
+return brands.find(brand => brand === brandIn);// allData[brandIn ] !== undefined
+
+
+})
+
+
 const listProducts =
   (keyword = "", pageNumber = 1) =>
   async dispatch => {
@@ -41,7 +82,7 @@ const listProducts =
       let resultbData = [];
       for(let i = 0; i < brands.length; i++){
         let brand = brands[i] ;
-         let mb = localStorage.getItem(brand);
+         let mb = getStaticProducts(brand);//localStorage.getItem(brand);
          if(mb !== undefined && mb !== null){
              console.log(mb); 
              let bData = JSON.parse(mb);
@@ -58,7 +99,7 @@ const listProducts =
       let resultbData = [];
       for(let i = 0; i < brands.length; i++){
         let brand = brands[i] ;
-         let mb = localStorage.getItem(brand);
+         let mb = getStaticProducts(brand);//localStorage.getItem(brand);
          if(mb !== undefined && mb !== null){
             
              let bData = JSON.parse(mb);
@@ -108,7 +149,7 @@ const topRatedProducts = () => async dispatch => {
     let resultbData = [];
     for(let i = 0; i < brands.length; i++){
       let brand = brands[i] ;
-       let mb = localStorage.getItem(brand);
+       let mb = getStaticProducts(brand);//localStorage.getItem(brand);
        if(mb !== undefined && mb !== null){
           
            let bData = JSON.parse(mb);
