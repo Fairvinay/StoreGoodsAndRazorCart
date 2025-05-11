@@ -20,7 +20,7 @@ const Header = () => {
   variant="light"  expand="lg" collapseOnSelect>
         <Container>
           <LinkContainer to="/">
-            <Navbar.Brand style={{ color: '#a5fffc' }} ><span  style={{ color: '#0831ff' , 'font-weight': '800' ,'font-family': 'Nunito, sans-serif' } }>Store Notify</span></Navbar.Brand>
+            <Navbar.Brand style={{ color: '#a5fffc' }} ><span  style={{ color: '#0831ff' , fontWeight: '800' ,fontFamily: 'Nunito, sans-serif' } }>Store Notify</span></Navbar.Brand>
           </LinkContainer>
           <SearchBox />
           <Navbar.Toggle aria-controls="basic-navbar-nav" />

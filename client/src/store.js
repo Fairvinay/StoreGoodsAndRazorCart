@@ -38,7 +38,7 @@ import {
   orderPayReducer,
   updateOrderReducer,
 } from "./reducers/orderReducers";
-
+import modelsReducer from './reducers/data/modelReducer';
 const reducer = combineReducers({
   productList: productListReducer,
   filterProduct: filterProductsReducer,
@@ -49,6 +49,7 @@ const reducer = combineReducers({
   productReview: productReviewReducer,
   productTopRated: productTopRatedReducer,
   cart: cartReducer,
+  models: modelsReducer,
   userLogin: userLoginReducer,
   userRegister: userRegisterReducer,
   userForgotPassword: userForgotPasswordReducer,
@@ -94,6 +95,7 @@ const initialState = {
     paymentMethod: paymentMethodFromStorage,
   },
   userLogin: { userInfo: userInfoFromStorage },
+ 
 };
 
 const middleware = [thunk];

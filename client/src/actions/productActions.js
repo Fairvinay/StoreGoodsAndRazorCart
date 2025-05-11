@@ -25,25 +25,74 @@ import {
 } from "../constants/productConstants";
 import axios from "axios";
 
+let default_keyword = "vivo";
 const listProducts =
   (keyword = "", pageNumber = 1) =>
   async dispatch => {
     try {
       dispatch({ type: PRODUCT_LIST_REQUEST });
-
+      default_keyword = keyword;
       const { data } = await axios.get(
         process.env.REACT_APP_SERVER_URL+`/api/products?keyword=${keyword}&pageNumber=${pageNumber}`
       );
 
       dispatch({ type: PRODUCT_LIST_SUCCESS, payload: data });
+      const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+      let resultbData = [];
+      for(let i = 0; i < brands.length; i++){
+        let brand = brands[i] ;
+         let mb = localStorage.getItem(brand);
+         if(mb !== undefined && mb !== null){
+             console.log(mb); 
+             let bData = JSON.parse(mb);
+             resultbData.push(bData);
+         }
+      }
+
+
+      dispatch({ type: PRODUCT_LIST_SUCCESS, payload: resultbData[keyword] });
+      
     } catch (error) {
-      dispatch({
-        type: PRODUCT_LIST_FAIL,
-        payload:
-          error.response && error.response.data.message
-            ? error.response.data.message
-            : error.message,
-      });
+
+      const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+      let resultbData = [];
+      for(let i = 0; i < brands.length; i++){
+        let brand = brands[i] ;
+         let mb = localStorage.getItem(brand);
+         if(mb !== undefined && mb !== null){
+            
+             let bData = JSON.parse(mb);
+             if(Array.isArray(bData)){
+               let firstEl = bData[0];;
+                   console.log(firstEl); 
+              
+             }
+             resultbData.push({ brand : brand , data : bData });
+         }
+      }
+     let keywordData = resultbData.filter((item) =>  item.brand === keyword
+      );
+      console.log(keywordData[0].data); 
+      let pro = { products : keywordData[0].data  , pages :1 , page:1};
+      console.log(pro.products); 
+      //dispatch({ type: PRODUCT_LIST_SUCCESS, payload: pro });
+
+      if( pro == undefined && pro == null){
+        if (keywordData.length === 0) {
+          
+        }else {
+          dispatch({
+            type: PRODUCT_LIST_FAIL,
+            payload:
+              error.response && error.response.data.message
+                ? error.response.data.message
+                : error.message,
+          });  
+        }
+      
+      }
+
+     
     }
   };
 
@@ -55,13 +104,56 @@ const topRatedProducts = () => async dispatch => {
 
     dispatch({ type: PRODUCT_TOP_RATED_SUCCESS, payload: data });
   } catch (error) {
-    dispatch({
+    const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+    let resultbData = [];
+    for(let i = 0; i < brands.length; i++){
+      let brand = brands[i] ;
+       let mb = localStorage.getItem(brand);
+       if(mb !== undefined && mb !== null){
+          
+           let bData = JSON.parse(mb);
+           if(Array.isArray(bData)){
+             let firstEl = bData[0];;
+                 console.log(firstEl); 
+            
+           }
+           resultbData.push({ brand : brand , data : bData });
+       }
+    }
+      
+    default_keyword = (default_keyword !== null && default_keyword !== undefined) ? default_keyword : 'oppo';
+
+    let keywordData = resultbData.filter((item) =>  item.brand ===default_keyword
+    );
+    console.log(keywordData[0].data); 
+    let pro = { products : keywordData[0].data , pages :1 , page:1};
+    console.log("TOP RATED   "+ pro.products); 
+    dispatch({ type: PRODUCT_TOP_RATED_SUCCESS, payload: pro });
+
+    if( pro == undefined && pro == null){
+      if (keywordData.length === 0) {
+        
+      }else {
+        dispatch({
+          type: PRODUCT_LIST_FAIL,
+          payload:
+            error.response && error.response.data.message
+              ? error.response.data.message
+              : error.message,
+        });  
+      }
+    
+    }
+
+
+
+   /* dispatch({
       type: PRODUCT_TOP_RATED_FAIL,
       payload:
         error.response && error.response.data.message
           ? error.response.data.message
           : error.message,
-    });
+    });*/
   }
 };
 

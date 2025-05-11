@@ -1,13 +1,52 @@
 import asyncHandler from "../middlewares/asyncHandler.js";
 import ProductModel from "../models/productModel.js";
 import axios from 'axios';
+
+
+const getStaticProducts = asyncHandler(async (brandIn) => {
+  const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+const pages = [1];//[1, 2, 3];
+
+const promises = [];
+
+for (const brand of brands) {
+  for (const page of pages) {
+    const url =process.env.STATIC_PRODUCT_URL+`/data/${brand}Page${page}.json`; // relative path
+    promises.push(
+      axios.get(url).then(res => ({
+        brand,
+        data: res.data,
+      })).catch(err => {
+        console.error(`❌ Failed to load ${url}`, err.message);
+        return { brand, data: [] };
+      })
+    );
+  }
+}
+
+const results = await Promise.all(promises);
+
+const allData = {};
+brands.forEach(brand => {
+  allData[brand] = results
+    .filter(r => r.brand === brand)
+    .flatMap(r => r.data);
+   // allData[brand] = allData[brand].forEach(console.log);
+   console.log(allData[brand][0]);
+   // localStorage.setItem(brand, JSON.stringify(allData[brand] ));
+});
+
+return brands.find(brand => brand === brandIn);// allData[brandIn ] !== undefined
+
+
+})
 // @desc - Fetch all Product
 // @route - GET /api/products
 // @access - Public
 const getProducts = asyncHandler(async (req, res, next) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
-
+   let products = []; let count = 0;let productModels  =  [];
   let query = req.query.keyword
     ? {
         name: {
@@ -18,23 +57,92 @@ const getProducts = asyncHandler(async (req, res, next) => {
     : {};
   try {   //http://localhost:8080/gadgets360/vivo?pageNumber=1
     // https://bb6f6125-db9c-4152-b500-ee566806723b.e1-us-east-azure.choreoapps.dev
-    const response = await axios.get(process.env.PRODUCT_URL+req.query.keyword, {
-      params: {
-        pageNumber: 1
+   let response  =undefined;
+     try {  
+      response =    await axios.get(process.env.PRODUCT_URL+'/'+req.query.keyword, {
+            params: {
+              pageNumber: 1
+            }
+          });
+          let dr  = response.data
+          console.log("  products not in MongoDB . got from server 8080 ...."); 
+          if(Array.isArray(dr)){
+           count = dr.length;
+       
+           for( let kk=0; kk<dr.length; kk++){
+             const product  =  { _id : 'store_'+Math.abs(Math.random()*10) , user: 'aidfe'+Math.abs(Math.random()*10) ,
+               name: response.data[kk].title,
+               image: response.data[kk].imgsrc ,
+               brand: response.data[kk].title,
+               category: 'mobile',
+           
+               description: '',
+               reviews:  [],
+               rating:  1, 
+               numReviews:  2,
+               price:  9293,
+               countInStock: 3 ,
+             } ;
+             productModels.push(product)
+               products = productModels
+           }
+          }
+         res.json({products, page, pages: Math.ceil(count / pageSize) });
+         // Great observation — in Node.js (especially with Express), calling res.json(...) does not automatically stop function execution.
+         // If you want to stop function execution, you need to use return;
+         return ; 
+      }   
+      catch (error) {
+        console.error('PRODUCT_URL Fetch error:', error);
       }
-    });
-
     console.log('Response:', response.data);
-    let count = 0;
-    let productModels  =  [];
+    const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+      let resultbData = [];
+      for(let i = 0; i < brands.length; i++){
+        let brand = brands[i] ;
+        let mb = getStaticProducts(brand) //localStorage.getItem(brand);
+        if(mb !== undefined && mb !== null){
+            
+            let bData = JSON.parse(mb);
+            if(Array.isArray(bData)){
+              let firstEl = bData[0];;
+                  console.log(firstEl); 
+              
+            }
+            resultbData.push({ brand : brand , data : bData });
+        }
+      }
+    let keywordData = resultbData.filter((item) =>  item.brand === keyword
+      );
+      console.log(keywordData[0].data); 
+      let pro = { products : keywordData[0].data };
+      console.log(pro.products); 
+      if(response  === undefined){
+        response.data = pro.products;
+        console.log("loading cache data for products ...."); 
+      }
 
-   let products = await ProductModel.find({ ...query })
+   
+    
+
+   products = await ProductModel.find({ ...query })
+        /* .then((res) => {
+
+
+
+
+
+         })
+       .catch((err) => {
+        console.log(err);
+       })*/
       .limit(pageSize)
       .skip(pageSize * (page - 1));
-      if(products.length === 0 && response.data !==undefined ){
+      if(products === undefined  && response.data !==undefined ){  // || products.length === 0)
          let dr  = response.data
+         console.log("  products not in MongoDB . got from server 8080 ...."); 
          if(Array.isArray(dr)){
-          count = dr.length
+          count = dr.length;
       
           for( let kk=0; kk<dr.length; kk++){
             const product  =  { _id : 'store_'+Math.abs(Math.random()*10) , user: 'aidfe'+Math.abs(Math.random()*10) ,
@@ -61,6 +169,9 @@ const getProducts = asyncHandler(async (req, res, next) => {
         res.json({products, page, pages: Math.ceil(count / pageSize) });
         //throw new Error("No products Found");
       }else {
+       products  = pro.products
+       console.log("  products not in MongoDB . got from satitc file ...."); 
+
         res.json({ products, page, pages: Math.ceil(count / pageSize) });
       }
     

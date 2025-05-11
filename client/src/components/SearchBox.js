@@ -9,6 +9,7 @@ const SearchBox = () => {
   const submitHandler = value => {
     if (keywords.trim()) {
       history.push(`/search/${keywords}`);
+      localStorage.setItem("keywords", keywords);
     } else {
       history.push("/");
     }
