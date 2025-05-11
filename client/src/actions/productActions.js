@@ -28,7 +28,7 @@ import axios from "axios";
 let default_keyword = "vivo";
 
 
-const getStaticProducts = asyncHandler(async (brandIn) => {
+const getStaticProducts = async (brandIn) => {
   const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
 const pages = [1];//[1, 2, 3];
 
@@ -64,7 +64,7 @@ brands.forEach(brand => {
 return brands.find(brand => brand === brandIn);// allData[brandIn ] !== undefined
 
 
-})
+}
 
 
 const listProducts =
@@ -82,7 +82,7 @@ const listProducts =
       let resultbData = [];
       for(let i = 0; i < brands.length; i++){
         let brand = brands[i] ;
-         let mb = getStaticProducts(brand);//localStorage.getItem(brand);
+         let mb =  await  getStaticProducts(brand);//localStorage.getItem(brand);
          if(mb !== undefined && mb !== null){
              console.log(mb); 
              let bData = JSON.parse(mb);
@@ -99,7 +99,7 @@ const listProducts =
       let resultbData = [];
       for(let i = 0; i < brands.length; i++){
         let brand = brands[i] ;
-         let mb = getStaticProducts(brand);//localStorage.getItem(brand);
+         let mb = await getStaticProducts(brand);//localStorage.getItem(brand);
          if(mb !== undefined && mb !== null){
             
              let bData = JSON.parse(mb);
@@ -149,7 +149,7 @@ const topRatedProducts = () => async dispatch => {
     let resultbData = [];
     for(let i = 0; i < brands.length; i++){
       let brand = brands[i] ;
-       let mb = getStaticProducts(brand);//localStorage.getItem(brand);
+       let mb =  await  getStaticProducts(brand);//localStorage.getItem(brand);
        if(mb !== undefined && mb !== null){
           
            let bData = JSON.parse(mb);
