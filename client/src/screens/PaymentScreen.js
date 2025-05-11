@@ -27,7 +27,7 @@ const PaymentScreen = () => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Payment" />
+      <Title title="Store Notify| Payment" />
       <FormContainer>
         <CheckoutSteps step1 step2 step3 />
         <h1>Payment Method</h1>

@@ -36,7 +36,7 @@ const LoginScreen = () => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Log-In" />
+      <Title title="Store Notify| Log-In" />
       <FormContainer>
         <h1>Sign In</h1>
         {error && <Message variant="danger">{error}</Message>}

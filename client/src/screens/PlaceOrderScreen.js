@@ -47,7 +47,7 @@ const PlaceOrderScreen = () => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Confirm Order" />
+      <Title title="Store Notify| Confirm Order" />
       <CheckoutSteps step1 step2 step3 step4 />
       <Row>
         <Col md={8}>

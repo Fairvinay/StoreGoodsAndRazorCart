@@ -35,7 +35,7 @@ const Cart = ({ history }) => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Cart" />
+      <Title title="Store Notify| Cart" />
       <Row>
         <Col md={8}>
           <h2>Your Cart</h2>

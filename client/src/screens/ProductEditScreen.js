@@ -95,7 +95,7 @@ const ProductEditScreen = () => {
 
   return (
     <>
-      <Title title="Gadgets360 | Edit Products" />
+      <Title title="Store Notify| Edit Products" />
       <Link to="/admin/productlist" className="btn btn-light my-3">
         Go Back
       </Link>

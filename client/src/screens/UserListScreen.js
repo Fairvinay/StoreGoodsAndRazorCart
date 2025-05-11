@@ -35,7 +35,7 @@ const UserListScreen = () => {
 
   return (
     <>
-      <Title title="Gadgets360 Users" />
+      <Title title="Store NotifyUsers" />
       <h1>Users</h1>
       {loading ? (
         <Loader />

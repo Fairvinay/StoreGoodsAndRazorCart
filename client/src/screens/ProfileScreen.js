@@ -67,7 +67,7 @@ const ProfileScreen = () => {
 
   return (
     <>
-      <Title title={userInfo && `Gadgets360 | ${userInfo.name}`} />
+      <Title title={userInfo && `Store Notify| ${userInfo.name}`} />
       <Row>
         <Col md={3}>
           <h2>Users profile</h2>

@@ -23,7 +23,7 @@ const ForgotPasswordScreen = () => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Forgot Password" />
+      <Title title="Store Notify| Forgot Password" />
       <FormContainer>
         <h1>Forgot Password</h1>
         {error && <Message variant="danger">{error}</Message>}

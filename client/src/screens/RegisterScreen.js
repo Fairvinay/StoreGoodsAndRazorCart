@@ -38,7 +38,7 @@ const RegisterScreen = () => {
   };
   return (
     <>
-      <Title title="gadgets360 | Register" />
+      <Title title="Store Notify| Register" />
       <FormContainer>
         <h1>Sign In</h1>
         {message && <Message variant="danger">{message}</Message>}

@@ -134,7 +134,7 @@ const OrderScreen = () => {
     <Message variant="danger">{error}</Message>
   ) : (
     <>
-      <Title title="Gadgets360 | Order details" />
+      <Title title="Store Notify| Order details" />
       <h1>Order {order._id}</h1>
       <Row>
         <Col md={8}>

@@ -52,7 +52,7 @@ const sendEmail = async function (options) {
 //   });
 
 //   const mailOptions = {
-//     from: "Gadgets360 <noreply@gmail.com>",
+//     from: "Store Notify<noreply@gmail.com>",
 //     to: options.email,
 //     subject: options.subject,
 //     text: options.message,

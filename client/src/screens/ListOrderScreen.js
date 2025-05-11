@@ -26,7 +26,7 @@ const OrderListScreen = () => {
 
   return (
     <>
-      <Title title="Gadgets360 | Orders List" />
+      <Title title="Store Notify| Orders List" />
       <h1>Orders</h1>
       {loading ? (
         <Loader />

@@ -34,7 +34,7 @@ const ShippingScreen = () => {
   };
   return (
     <>
-      <Title title="gadgets360 | Shipping" />
+      <Title title="Store Notify| Shipping" />
       <FormContainer>
         <CheckoutSteps step1 step2 />
         <h1>Shipping</h1>

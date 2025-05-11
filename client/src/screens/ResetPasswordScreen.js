@@ -36,7 +36,7 @@ const ResetPasswordScreen = () => {
   };
   return (
     <>
-      <Title title="Gadgets360 | Reset Password" />
+      <Title title="Store Notify| Reset Password" />
       <FormContainer>
         <h1>Reset Password</h1>
         {errPass && <Message variant="danger">{errPass}</Message>}

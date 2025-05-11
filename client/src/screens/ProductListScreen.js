@@ -69,7 +69,7 @@ const ProductListScreen = () => {
 
   return (
     <>
-      <Title title="Gadgets360 | Product-List" />
+      <Title title="Store Notify| Product-List" />
       <Row className="align-items-center">
         <Col>
           <h1>Products</h1>
