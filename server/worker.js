@@ -14,6 +14,222 @@ import pLimit from 'p-limit';
 //const pLimit = require('p-limit');
 //var promiseLimit = require('promise-limit')
 
+function isEmptyObject(obj) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) && Object.keys(obj).length === 0;
+}
+function serializeElement(el) {
+  return {
+    tag: el.tagName.toLowerCase(),
+    text: el.textContent.trim(),
+   // attributes: getAttributes(el),
+    html: el.outerHTML
+  };
+}
+async function waitForElements(document , selector, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const interval = 100;
+    let elapsed = 0;
+
+    const timer = setInterval(() => {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length) {
+        clearInterval(timer);
+        resolve(Array.from(elements));
+      } else if ((elapsed += interval) >= timeout) {
+        clearInterval(timer);
+        reject(new Error('Timeout: Elements not found'));
+      }
+    }, interval);
+  });
+}
+function waitForElementsMutation(document , selector, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const found = document.querySelectorAll(selector);
+    if (found.length) return resolve(Array.from(found));
+
+    const observer = new MutationObserver(() => {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length) {
+        observer.disconnect();
+        resolve(Array.from(elements));
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Timeout: No elements found for selector "${selector}"`));
+    }, timeout);
+  });
+}
+function waitForElementsFullyReady(document ,selector, {
+  timeout = 50000,
+  check = el => el.textContent.trim().length > 0 // custom check per element
+} = {}) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    const start = Date.now();
+
+    const tryResolve = () => {
+      const elements = Array.from(document.querySelectorAll(selector));
+      const allReady = elements.length && elements.every(check);
+
+      if (allReady) {
+        clearInterval(interval);
+        clearTimeout(timer);
+        resolve(elements);
+      } else if (Date.now() - start > timeout) {
+        clearInterval(interval);
+        reject(new Error(`Timeout: elements not fully ready for "${selector}"`));
+      }
+    };
+
+    const interval = setInterval(tryResolve, 4500);
+    timer = setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error(`Timeout: elements never ready for "${selector}"`));
+    }, timeout);
+  });
+}
+async function waitForExactProdElements(document , selector, expectedCount = 1, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    let start = Date.now();
+
+    const logElements = async  () => {
+      const found = await document.querySelectorAll(selector);
+      console.log(`[${Date.now() - start}ms] Found ${found.length} elements for ${selector}`);
+      let tkp = JSON.stringify(found);
+      console.log(` found  ${tkp} `);
+      let innerElem = [] ;
+      const minLength = Math.min(found.length,13);
+
+      
+       for (let i = 0; i < minLength; i++) { 
+          let kto = found[i] ;
+          let th = serializeElement(kto);
+         // console.log(" found inner elem" ,th  );
+          innerElem.push(th);
+      }
+      //const serialized =found.map(serializeElement);
+      //console.log(JSON.stringify(serialized, null, 2));
+      const merged =innerElem ;  // Array.from(found);
+       let prodText = {  } ; 
+       let prodA = []
+      //for (let i = 0; i < minLength; i++) { 
+        await Promise.all( merged.map(async (item) => {
+            // html: el.outerHTML
+             const htmlPlain =  await   item.html; // item.querySelector('img').title;
+             let domProductInner = new JSDOM(htmlPlain);
+             let document = domProductInner.window.document;
+             let title = await document.querySelector('img').title;
+             let imgsrc  = await document.querySelector('img').src;
+             let a = await document.querySelector('a').href
+               prodText = {title , imgsrc , a } ; // `${title } ${imgsrc} ` 
+ 
+             let mergedText = Object.assign({}, prodText );     
+          //  const imgsrc  =  await  // item.querySelector('img').src;
+          //const a =     //  item.querySelector('a').href;
+            // prodText = {title  } ; 
+            prodA.push(prodText);
+        }));
+        //await waitForExactElements(document ,'div._flx._bwrp',4);
+
+    //  }
+    console.log(" product  ",JSON.stringify(prodA));
+      return prodA ;
+    };
+
+    const check = async () => {
+      const elements = await logElements();
+      if (elements.length >= expectedCount) {
+        clearInterval(interval);
+        clearTimeout(failTimer);
+        resolve(elements);
+      }
+    };
+
+    const interval = setInterval(check, 4500);
+
+    const failTimer = setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error(`❌ Timeout: Only ${document.querySelectorAll(selector).length} elements found for selector "${selector}"`));
+    }, timeout);
+  });
+}
+
+async function waitForExactPriceElements(document , selector, expectedCount = 1, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    let start = Date.now();
+
+    const logElements = async  () => {
+      const found = await document.querySelectorAll(selector);
+      console.log(`[${Date.now() - start}ms] Found ${found.length} elements for ${selector}`);
+      let tkp = JSON.stringify(found);
+      console.log(` found  ${tkp} `);
+      let innerElem = [] ;
+      const minLength = Math.min(found.length,13);
+
+      
+       for (let i = 0; i < minLength; i++) { 
+          let kto = found[i] ;
+          let th = serializeElement(kto);
+         // console.log(" found inner elem" ,th  );
+          innerElem.push(th);
+      }
+      //const serialized =found.map(serializeElement);
+      //console.log(JSON.stringify(serialized, null, 2));
+      const merged =innerElem ;  // Array.from(found);
+       let prodText = {  } ; 
+       let prodA = []
+      //for (let i = 0; i < minLength; i++) { 
+        await Promise.all( merged.map(async (item) => {
+            // html: el.outerHTML
+             const htmlPlain =  await   item.html; // item.querySelector('img').title;
+             let domPriceInner = new JSDOM(htmlPlain);
+             let document = domPriceInner.window.document;
+            
+             ///const prodText = {title , imgsrc , a } ; // `${title } ${imgsrc} ` 
+
+            // const span = container.querySelector('span'); // outer span
+
+             const span  = await document.querySelector('span');
+             const rupee = span.textContent.replace(/Rs\./, '').trim();
+             
+             const priceText =  {rupee }; 
+             let mergedText = Object.assign({},  priceText);     
+          //  const imgsrc  =  await  // item.querySelector('img').src;
+          //const a =     //  item.querySelector('a').href;
+           // prodText = {title  } ; 
+            prodA.push(priceText);
+        }));
+        //await waitForExactElements(document ,'div._flx._bwrp',4);
+
+    //  }
+        console.log(" price  ",JSON.stringify(prodA));
+      return prodA;
+    };
+
+    const check = async() => {
+      const elements = await logElements();
+      if (elements.length >= expectedCount) {
+        clearInterval(interval);
+        clearTimeout(failTimer);
+        resolve(elements);
+      }
+    };
+
+    const interval = setInterval(check, 2);
+
+    const failTimer = setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error(`❌ Timeout: Only ${document.querySelectorAll(selector).length} elements found for selector "${selector}"`));
+    }, timeout);
+  });
+}
 (async () => {
   try {
     const { brand, page } = workerData;
@@ -30,6 +246,7 @@ import pLimit from 'p-limit';
        const dir = path.join(twoLevelsUp, 'client', 'public/data'); 
 
       const fileName = `${brand}Page${page}.json`;
+      const fileDetailName = `${brand}PageDetail${page}.json`;
      /*const filePath =  path.resolve(dir,fileName );//path.join(__dirname, 'data', fileName);
       if (!fs.existsSync(filePath)) {
         
@@ -50,20 +267,149 @@ import pLimit from 'p-limit';
     
        let fetHTML =   (async () => {
           const t = await   response.data; //response.text();
-           let text =t
+           let text =t;
            let dom = new JSDOM(text);
            let document = dom.window.document;
 
-           const items =  Array.from(document.querySelectorAll('div.rvw-imgbox'));
+           let  items = []; //Array.from(document.querySelectorAll('div.rvw-imgbox'));
+           let pricebuy = [];
+           const imgLoadedCheck = el => {
+            const img = el.querySelector('img');
+            return img ? img.complete : true;
+           }; 
+           const hrefLoadedCheck = el => {
+            const img = el.querySelector('a');
+            return img ? img.complete : true;
+          };
+           const priceLoadedCheck = el => {
+            const img = el.querySelector('rupee');
+            return img ? img.complete : true;
+          };
            // Log to verify the list is not empty
-            console.log(`Found ${items.length} items`);
+            try {
+                items = await waitForExactProdElements(document , 'div.rvw-imgbox',3); //{ check: imgLoadedCheck });
 
-            await Promise.all( items.map(async (item) => {
+                pricebuy =   await waitForExactPriceElements(document ,'div._flx._bwrp',1) ; // { check: priceLoadedCheck });
+                //pricebuy =   await waitForElementsMutation(document ,'div._flx._bwrp');
+                //Array.from(document.querySelectorAll('div._flx._bwrp'));
+              console.log(`✅ Found product  ${items.length} items`);
+              console.log(`Found pricebuy  ${items.length} items`);
+              console.log(" product  -->  ",JSON.stringify(items));
+              console.log(" price  -->  ",JSON.stringify(pricebuy));
+                // GET BOTHE the arrays  and form a merged product array with price 
+                const minLength = Math.min(items.length, pricebuy.length);
+               const merged = [];
+            for (let i = 0; i < minLength; i++) { 
+                     let prd = items[i];
+                     let prc = pricebuy[i];
+                    let  totalProd  = Object.assign({}, prd, prc);
+                    merged.push(totalProd);
+            }
+            await Promise.all( merged.map(async (item) => {
+              await extractDetailResults(item)
+              .then(data => { console.log(data); 
+              // const fileName = `${brand}Page${page}.json`;
+               //const filePath =  path.resolve(dir,fileName ); //path.join(__dirname, 'data', fileName);
+               //const fileDetailName = `${brand}PageDetail${page}.json`;
+               //  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));  
+                 return data;
+                 }).catch(error => {
+                   console.error('Product details fetch  error:', error);
+                   return { error: true, error_message: error.message };
+                 });
+       
+            })
+ 
+            );
+           /*   const minLength = Math.min(items.length, pricebuy.length);
+            const merged = [];
+            for (let i = 0; i < minLength; i++) {   // .textContent 
+              
+              let mergedText = {};
+              console.log(" items[i] ",JSON.stringify(items[i]));
+              console.log(" pricebuy[i] ",JSON.stringify(pricebuy[i]));
+              try {  
+                let domProductInner = new JSDOM(items[i]);
+              const title = await domProductInner.querySelector('img').title;
+              const imgsrc  = await domProductInner.querySelector('img').src;
+              const a = await domProductInner.querySelector('a').href
+              const prodText = {title , imgsrc , a } ; // `${title } ${imgsrc} ` 
+              let domPriceInner = new JSDOM(pricebuy[i]);
+              const rupee  = await domPriceInner.querySelector('rupee').textContent;
+              const priceText =  {rupee }; 
+              mergedText = Object.assign({}, prodText, priceText);
+              } catch(err ) {
+              console.log(" could not merge ",JSON.stringify(err)); //console.error('Fetch error:', err);
+              }
+              console.log(" mergedText ",mergedText);
+              if(!isEmptyObject(mergedText)) 
+                {  merged.push(mergedText); } 
+            }  
+              */
+
+             
+             // const pricebuy =  Array.from(document.querySelectorAll('div._flx._bwrp'));
+             // const merged = [...items, ...pricebuy];
+             //{ check: imgLoadedCheck });
+          /*  await waitForExactElements(document , 'div.rvw-imgbox',4).then(items => async () => {
+              console.log(" product  ",JSON.stringify(items));
+               await waitForExactElements(document ,'div._flx._bwrp',4).then(pricebuy =>  async () => {
+                 console.log(" price  ",JSON.stringify(pricebuy));
+                    const minLength = Math.min(items.length, pricebuy.length);
+                  const merged = [];
+                  for (let i = 0; i < minLength; i++) {   // .textContent 
+                    
+                    let mergedText = {};
+                    console.log(" items[i] ",JSON.stringify(items[i]));
+                    console.log(" pricebuy[i] ",JSON.stringify(pricebuy[i]));
+                    try {  
+                      let domProductInner = new JSDOM(items[i]);
+                    const title = await domProductInner.querySelector('img').title;
+                    const imgsrc  = await domProductInner.querySelector('img').src;
+                    const a = await domProductInner.querySelector('a').href
+                    const prodText = {title , imgsrc , a } ; // `${title } ${imgsrc} ` 
+                    let domPriceInner = new JSDOM(pricebuy[i]);
+                    const rupee  = await domPriceInner.querySelector('rupee').textContent;
+                    const priceText =  {rupee }; 
+                    mergedText = Object.assign({}, prodText, priceText);
+                    } catch(err ) {
+                    console.log(" could not merge ",JSON.stringify(err)); //console.error('Fetch error:', err);
+                    }
+                    console.log(" mergedText ",mergedText);
+                    if(!isEmptyObject(mergedText)) 
+                      {  merged.push(mergedText); } 
+                  }  
+        
+
+                    })
+
+                  }  );
+                */
+
+
+
+                  } catch (error) {
+                    console.error(error.message);
+                  }
+         // })();
+
+
+
+         /*  waitForElements('div.rvw-imgbox')
+            .then(itemsfound => { console.log(`✅ Found ${itemsfound.length} items`, itemsfound);
+                items.push(itemsfound);
+              } )
+            .catch(err => console.error(err)); */
+           // Log to verify the list is not empty
+          
+          //process.exit();
+         /*   await Promise.all( merged.map(async (item) => {
                await extractResults(item)
                .then(data => { console.log(data); 
                 
                 const fileName = `${brand}Page${page}.json`;
                 const filePath =  path.resolve(dir,fileName ); //path.join(__dirname, 'data', fileName);
+                const fileDetailName = `${brand}PageDetail${page}.json`;
                 fs.writeFileSync(filePath, JSON.stringify(data, null, 2));  
                 
                 return data;
@@ -122,16 +468,141 @@ import pLimit from 'p-limit';
       console.error('Fetch error:', error);
     });
      
-    async function extractResults(item) {
-      const title = await item.querySelector('img').title;
-      const imgsrc  = await item.querySelector('img').src;
+
+    async function extractDetailResults(item) {
+     
       let jsun = ''; let  prodDesc ='' , prodImg='';
-      jsun  = { title , imgsrc };
+      let id=  'store_'+Math.abs(Math.random()*10); 
+      let userGold = 'aidfe'+Math.abs(Math.random()*10);
+      let price = item.rupee;
+      jsun  = { };
       let prodDescArr =[]; let prodImgHref ='';
       let reqProduct = {}
       // read https://www.gadgets360.com/vivo-t4-5g-price-in-india-131722#pfrom=search
       try { //const contResponse = await fetch(item.querySelector('a').href);
-         const url = item.querySelector('a').href
+         const url = item.a; // ..item.querySelector('a').href
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' // Some sites block non-browser agents
+            }
+          });
+        
+          const rawHtml = await response.text();
+        
+          tidy(rawHtml, { doctype: 'html5', indent: true }, async (err, cleanedHtml) => {
+            if (err) {
+              console.error('HTML Tidy Error:', err);
+              return;
+            }
+        
+            const dom = new JSDOM(cleanedHtml);
+            const documentD = dom.window.document;
+           // const contDocument = contDom.window.document;
+              prodDesc = documentD.querySelectorAll('._pdsd'); //documentD.querySelectorAll('div._pdsd');
+             if(prodDesc.length  > 0){
+                // req = req[0].nextElementSibling.textContene  
+                   prodDesc.forEach(element => {
+                      console.log('element:', element.textContent);
+                      let descSplit = element.textContent.split('\n');
+                      if( descSplit.length >1){
+                          console.log('key :', descSplit[0]);
+                          console.log('value :', descSplit[1]);
+                          jsun[descSplit[0]] = descSplit[1];
+                      }
+                      prodDescArr.push(element.textContent.trim());   
+                   });
+             }
+             prodImg =  documentD.querySelectorAll('._pdmimg'); // .__arModalBtn ._flx
+             if(prodImg !==null && prodImg !== undefined  ){
+                 // fetch the image url
+                 if(prodImg.childNodes  !== null && prodImg.childNodes !== undefined  && prodImg.childNodes.length > 0) {
+                   if(prodImg.childNodes [0] !==null && prodImg.childNodes[0] !== undefined  ){
+                     prodImgHref = prodImg.childNodes[0];
+                    if(prodImgHref.src !==null && prodImgHref.src !== undefined  ){
+                       console.log('image href:', prodImgHref.src);
+                       jsun.image = prodImgHref.src;
+                    }
+                 }
+               }
+                
+             }
+            // request prodect with image and detais descrip attributes
+            let t =item.title;
+            let img = item.imgsrc;
+            reqProduct = { t , img, prodDescArr};
+
+            console.log('reqProduct:', reqProduct);
+            const fileDetailName = `${brand}PageDetail${page}.json`;
+            const fileDetailPath =  path.resolve(dir,fileDetailName );
+               
+            reqProduct = { t , img, prodDescArr , price };
+            // 'aidfe'+Math.abs(Math.random()*10)
+            //for( let kk=0; kk<dr.length; kk++){
+            // 'store_'+Math.abs(Math.random()*10)
+              const product  =  { _id :  id , user: userGold ,
+                name: reqProduct.t,
+                image: reqProduct.img ,
+                brand: reqProduct.t,
+                category: 'mobile',
+            
+                description:   prodDescArr.join('\n'),
+                reviews:  [],
+                rating:  1, 
+                numReviews:  2,
+                price:   reqProduct.price,
+                countInStock: 3 ,
+              } ;
+             // productModels.push(product)
+              //  products = productModels
+           // }
+          // 
+            
+            fs.writeFileSync(fileDetailPath, JSON.stringify(product, null, 2));
+             
+
+
+          });
+        
+        } catch (error) {
+          console.error('❌ Fetch error:', error.message);
+     }
+     // const contText = await contResponse.text();
+     // const contDom = new JSDOM(contText);
+     
+
+      async function fpInReq(fp) {
+          const ty = fp.nextElementSibling;
+          if (!ty) return;
+          jsun[ty.textContent] = ty.nextElementSibling.textContent;
+      }
+      const limit = pLimit(10); // Set concurrency limit to 10
+      /* const limit =    promiseLimit(2)*/
+       const tasks =   Array.from(reqProduct).map(item => 
+         limit(() => fpInReq(item))
+       );
+       await Promise.all(tasks);
+       results.push(jsun);
+       return results;
+  }
+
+
+
+
+     
+    async function extractResults(item) {
+      const title = item.title;//await item.querySelector('img').title;
+      const imgsrc  = item.imgsrc; //await item.querySelector('img').src;
+      const rupee  = item.rupee; //await item.querySelector('rupee').textContent;
+      let jsun = ''; let  prodDesc ='' , prodImg='';
+      let id=  'store_'+Math.abs(Math.random()*10); 
+      let userGold = 'aidfe'+Math.abs(Math.random()*10);
+      let price = rupee;
+      jsun  = { title , imgsrc , id , price};
+      let prodDescArr =[]; let prodImgHref ='';
+      let reqProduct = {}
+      // read https://www.gadgets360.com/vivo-t4-5g-price-in-india-131722#pfrom=search
+      try { //const contResponse = await fetch(item.querySelector('a').href);
+         const url = item.a; // ..item.querySelector('a').href
           const response = await fetch(url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' // Some sites block non-browser agents
@@ -183,6 +654,10 @@ import pLimit from 'p-limit';
             reqProduct = { t , img, prodDescArr};
 
             console.log('reqProduct:', reqProduct);
+            const fileDetailName = `${brand}PageDetail${page}.json`;
+            const fileDetailPath =  path.resolve(dir,fileDetailName );
+           
+           
             // Example: Extract product title
             const title = documentD.querySelector('h1')?.textContent.trim();
             console.log('📱 Title:', title);
@@ -190,7 +665,32 @@ import pLimit from 'p-limit';
             // Example: Extract price
             const price = documentD.querySelector('.shop_now_section .price')?.textContent.trim();
             console.log('💰 Price:', price || 'Not found');
+            reqProduct = { t , img, prodDescArr , price };
 
+            //for( let kk=0; kk<dr.length; kk++){
+            // 'store_'+Math.abs(Math.random()*10)
+              const product  =  { _id :  id , user: userGold ,
+                name: reqProduct.t,
+                image: reqProduct.img ,
+                brand: reqProduct.t,
+                category: 'mobile',
+            
+                description:   prodDescArr.join('\n'),
+                reviews:  [],
+                rating:  1, 
+                numReviews:  2,
+                price:   reqProduct.price,
+                countInStock: 3 ,
+              } ;
+             // productModels.push(product)
+              //  products = productModels
+           // }
+          // 
+             
+           
+
+
+            fs.writeFileSync(fileDetailPath, JSON.stringify(product, null, 2));
            
 
 
