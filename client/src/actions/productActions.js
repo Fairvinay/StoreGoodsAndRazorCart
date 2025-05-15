@@ -52,7 +52,7 @@ const promises = [];
 
 for (const brand of brands) {
   for (const page of pages) {
-    const url =process.env.REACT_APP_SERVER_URL+`/data/${brand}Page${page}.json`; // relative path
+    const url =process.env.REACT_APP_SERVER_URL+`/data/${brand}PageDetail${page}.json`; // relative path
     promises.push(
       axios.get(url).then(res => ({
         brand,

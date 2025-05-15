@@ -38,7 +38,8 @@ import {
   orderPayReducer,
   updateOrderReducer,
 } from "./reducers/orderReducers";
-import modelsReducer from './reducers/data/modelReducer';
+/* import modelsReducer from './reducers/data/modelReducer';
+most probably this above import code already emebed in productAction.js */
 const reducer = combineReducers({
   productList: productListReducer,
   filterProduct: filterProductsReducer,
@@ -49,7 +50,7 @@ const reducer = combineReducers({
   productReview: productReviewReducer,
   productTopRated: productTopRatedReducer,
   cart: cartReducer,
-  models: modelsReducer,
+ /* models: modelsReducer, */ /* */
   userLogin: userLoginReducer,
   userRegister: userRegisterReducer,
   userForgotPassword: userForgotPasswordReducer,
