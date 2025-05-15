@@ -1,6 +1,6 @@
 import { Spinner } from "react-bootstrap";
-const Loader = () => {
-  return (
+const Loader = ({isShown}) => {
+  return (isShown ? (
     <Spinner
       animation="border"
       role="status"
@@ -13,6 +13,8 @@ const Loader = () => {
     >
       <span className="sr-only">Loading ...</span>
     </Spinner>
+  ): (<></>)
+   
   );
 };
 

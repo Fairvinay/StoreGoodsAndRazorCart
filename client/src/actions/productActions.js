@@ -235,7 +235,7 @@ const topRatedProducts = () => async dispatch => {
 
     
     console.log("TOP RATED   "+ pro.products); 
-     dispatch({ type: PRODUCT_TOP_RATED_SUCCESS, payload: pro });
+    //dispatch({ type: PRODUCT_TOP_RATED_SUCCESS, payload: pro });
 
     if( pro == undefined && pro == null){
       if (keywordData.length === 0) {
