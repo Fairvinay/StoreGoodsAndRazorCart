@@ -38,7 +38,8 @@ app.use(express.json());
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:8080',
     'https://bb6f6125-db9c-4152-b500-ee566806723b.e1-us-east-azure.choreoapps.dev',
     'https://23f24711-ee18-4810-935b-61f010c33bec.e1-us-east-azure.choreoapps.dev',
-    'https://5f6de4a7-67ca-41e3-8e73-63d1fd322c3e.e1-us-east-azure.choreoapps.dev'
+    'https://5f6de4a7-67ca-41e3-8e73-63d1fd322c3e.e1-us-east-azure.choreoapps.dev',
+    'https://storegoods-storenotify.netlify.app'
 ];
 
 app.use(cors({
