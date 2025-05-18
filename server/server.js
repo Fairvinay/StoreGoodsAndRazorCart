@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import colors from "colors";
 import path from "path";
 import { JSDOM } from 'jsdom';
-import connectDB from "./config/db.js";
+import connectDB from "./config/dbworker.js";
 import productRouter from "./routes/productRoutes.js";
 import { errorHandler, notFound } from "./middlewares/error.js";
 import userRouter from "./routes/userRoutes.js";

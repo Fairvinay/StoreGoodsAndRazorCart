@@ -7,6 +7,9 @@ import path from 'path';
 import fs from 'fs';
 
 const brands = ['vivo', 'oppo', 'motorola', 'samsung'];
+let globalFilteredProducts = [];
+let staticFetched = true;
+let default_keyword = "vivo";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Step 3: Move 2 directories up
@@ -102,6 +105,7 @@ for (const brand of brands) {
       : false;
   });
    // allData[brand] = allData[brand].forEach(console.log);
+   globalFilteredProducts = filteredProducts;
   return filteredProducts;
 });
 
@@ -151,12 +155,12 @@ const getProducts = asyncHandler(async (req, res, next) => {
         },
       }
     : {};
-   let keyword = req.query.keyword !== 'undefined'? req.query.keyword : '';
+   let keyword = req.query.keyword !== 'undefined'? req.query.keyword : default_keyword;
   try {   //http://localhost:8080/gadgets360/vivo?pageNumber=1
     // https://bb6f6125-db9c-4152-b500-ee566806723b.e1-us-east-azure.choreoapps.dev
    let response  =undefined;
      try {  
-      response =    await axios.get(process.env.PRODUCT_URL+'/'+req.query.keyword, {
+      response =    await axios.get(process.env.PRODUCT_URL+'/'+keyword, {
             params: {
               pageNumber: 1
             }
@@ -166,6 +170,10 @@ const getProducts = asyncHandler(async (req, res, next) => {
           if(Array.isArray(dr)){
            count = dr.length;
             products = dr;
+            if (dr.length === 0) {
+              console.log("  products not in MongoDB . static file ...."); 
+              products = sampleProductDataArray;
+            }
           /* for( let kk=0; kk<dr.length; kk++){
              const product  =  { _id : 'store_'+Math.abs(Math.random()*10) , user: 'aidfe'+Math.abs(Math.random()*10) ,
                name: response.data[kk].title,
@@ -236,23 +244,39 @@ const getProducts = asyncHandler(async (req, res, next) => {
       }
       let pro = { products : sampleProductDataArray };
        if(keywordData.length > 0 && keywordData[0].data !==undefined ){
-      console.log(keywordData[0].data); 
+        console.log('  keywordData[0].data   --> ' , keywordData[0].data); 
         pro = { products : keywordData[0].data };
        }
       
      
-      console.log(pro.products); 
+    
       if(response  === undefined){
         response = { data : pro.products };
         //response.data = pro.products;
+        staticFetched   =true;
+        //response.data = pro.products;
         console.log("loading cache data for products ...."); 
+        console.log(' staticFetched ',response.data.length); 
       }
 
+      if( !staticFetched ){
+          try {
+            products = await ProductModel.find({ ...query })
+              .limit(pageSize)
+              .skip(pageSize * (page - 1))
+              .maxTimeMS(9000);
+          } catch (error) {
+            if (error.code === 50) {
    
+              console.error('Query timed out.');
     
+            } else {
+              console.error('Query failed:', error);
+            }
+          }
+      }
 
-   products = await ProductModel.find({ ...query })  .limit(pageSize)
-         .skip(pageSize * (page - 1));
+       //  .skip(pageSize * (page - 1));  
         /* .then((res) => {
 
 
@@ -266,7 +290,7 @@ const getProducts = asyncHandler(async (req, res, next) => {
     
       if((products !== undefined && products.length === 0)  && response.data !==undefined ){  // || products.length === 0)
          let dr  = response.data
-         console.log("  products not in MongoDB . got from server 8080 ...."); 
+         console.log("  products not in MongoDB . got from server 8080 ...." + JSON.stringify(dr)); 
          if(Array.isArray(dr)){
           count = dr.length;
             products = dr;
@@ -321,7 +345,7 @@ const getProducts = asyncHandler(async (req, res, next) => {
         res.json({products, page, pages: Math.ceil(count / pageSize) });
         //throw new Error("No products Found");
       }else {
-       products  = pro.products
+       products  = pro.products;
        console.log("  products not in MongoDB . got from satitc file ...."); 
 
         res.json({ products, page, pages: Math.ceil(count / pageSize) });
@@ -397,24 +421,109 @@ function  loadJsonSync  (filePath) {
 // @access - Public
 const getProductDetail = asyncHandler(async (req, res, next) => {
   const id = req.params.id;
-  let brand = id;
+  let brand = id; let findByBrand = false;
+  if(isNaN(Number(id))){
+    findByBrand = true;
+    if (brands.includes(id)) {
+      brand = id;
+    }
+    else { 
+      brand = "oppo";   // deafult
+    } brands.forEach((b) => {
+      if (b === id) {
+        brand = b;
+      }
+    })
+    console.log("user searching using brand is :" + brand);
+  }
+  else {
+    console.log("user searching using product id is :" + id);
+  }
+
   // read from previously fetched vivoPageDetail1.json.
-  const data = loadJsonSync(`${brand}PageDetail1.json`);
-  let reqProd  = undefined
+    // Since id is in the format store_3.123987129873
+  // find in the already fetched 
+  let requestData =undefined;
+  if (globalFilteredProducts.length > 0) {
+  	 requestData =   globalFilteredProducts .filter(product => {
+		    const internal_id = product?._id;
+		    return typeof internal_id === 'string' && typeof id === 'string'
+		      ? internal_id.toLowerCase().includes(id.toLowerCase())
+		      : false;
+		  });
+    //successfulData = sampleProductDataArray;
+     console.warn('found the usr reuested product :' );
+  } 
+  else {
+    requestData =	 sampleProductDataArray.filter(product => {
+		    const internal_id = product?._id;
+		    return typeof internal_id === 'string' && typeof id === 'string'
+		      ? internal_id.toLowerCase().includes(id.toLowerCase())
+		      : false;
+			  }); 
+	 console.warn('found the   reuested product from emededed array :' );	
+  }
+  let keywordData=undefined;
+ /* for(let i = 0; i < brands.length; i++){
+        let brand = brands[i] ;*/
+  if(findByBrand && brand !== undefined && brand !== null){
+        let mb = await getStaticProducts(brand);
+
+    if(mb !== undefined && mb !== null){
+      console.log("no static data found from json file "+ brand); 
+    }else {
+      console.log("loads emeded controller static data "+ brand); 
+      mb = sampleProductDataArray;
+    }
+       keywordData = mb.filter(product => {
+		    const internal_id = product?._id;
+		    return typeof internal_id === 'string' && typeof id === 'string'
+		      ? internal_id.toLowerCase().includes(id.toLowerCase())
+		      : false;
+		  });   
+  }
+      
+  /*     if(  keywordData !== undefined){
+       	   break;
+       }
+  }*/
+  let  data =   (keywordData !== undefined) ? keywordData :undefined;   //loadJsonSync(`${brand}PageDetail1.json`);
+  let reqProd  = undefined;
    if(data !== undefined && Array.isArray(data)){
     reqProd =  data.find ( product => product.brand.indexOf(brand ) >-1)
    }
    else { 
     reqProd = data;
    }
+   const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
+   const safeBrand = escapeRegex(brand);
+
+   const product = findByBrand ? await ProductModel.find({   brand: { $regex: safeBrand, $options: 'i' }}) : await ProductModel.findById(id);
+    if (product) {
+   // return res.status(200).json(product);
+       console.warn('found the   reuested product in DB :' );	
+      reqProd = product;
+     } else {
+   // res.status(404);
+     console.warn('no  product in DB :' );	
+    //throw new Error("Product Not Found");
+  }
+
 
    if(reqProd !== undefined && Array.isArray(reqProd)){
-    return res.status(200).json(reqProd[0]);
+    console.log("found the  multiple products from emededed array :" );
+    console.log("reqProd[0] : ",JSON.stringify(reqProd[0])  );
+    console.log("reqProd[0] length: ",JSON.stringify(reqProd.length)  );
+    console.log("reqProd  : ",JSON.stringify(reqProd )  );
+    return res.status(200).json(reqProd);
    }
    else if ( reqProd !== undefined){
+    console.log("found the product from emededed array :" );
     return res.status(200).json(reqProd);
    }
    else { 
+    console.log("not found the product from emededed array :" );
     res.status(404);
     throw new Error("Product Not Found");
    }
@@ -555,186 +664,161 @@ const sampleProductdata = {
 };
 const sampleProductDataArray = [
   {
-    "_id": "store_1.234649430540653",
-    "user": "aidfe3.2641056876348973",
+    "_id": "682964718522a610f4f63da1",
+    "user": "6819f3bd808190ec8f62a953",
     "name": "Motorola Edge 60 Fusion",
     "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
+    "brand": "Motorola Edge 60 Fusion",
     "category": "mobile",
-    "description": "Display 6.70-inch (1220x2712), Processor MediaTek Dimensity 7400, Front Camera 32MP, Rear Camera 50MP + 13MP, RAM 8GB, 12GB, Storage 256GB, Battery 5500mAh, OS Android 15",
+    "description": "Display\n                            6.70-inch\n                            (1220x2712)\nProcessor\n                            MediaTek Dimensity\n                            7400\nFront Camera\n                            32MP\nRear Camera\n                            50MP + 13MP\nRAM\n                            8GB, 12GB\nStorage\n                            256GB\nBattery\n                            Capacity 5500mAh\nOS\n                            Android 15",
+    "numReviews": 0,
+    "price": 1998,
+    "countInStock": 0
+  },
+  {
+    "_id": "682964718522a610f4f63d99",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Motorola Edge 60 Stylus",
+    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
+    "brand": "Motorola Edge 60 Stylus",
+    "category": "mobile",
+    "description": "Display\n                            6.67-inch\n                            (1220x2712)\nProcessor\n                            Qualcomm\n                            Snapdragon 7s Gen 2\nFront Camera\n                            32MP\nRear Camera\n                            50MP + 13MP\nRAM\n                            8GB\nStorage\n                            256GB\nBattery\n                            Capacity 5000mAh\nOS\n                            Android 15",
+    "numReviews": 0,
+    "price": 7102,
+    "countInStock": 0
+  },
+  {
+    "_id": "682964718522a610f4f63d75",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Motorola Moto X (Gen 2)",
+    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
+    "brand": "Motorola Moto X (Gen 2)",
+    "category": "mobile",
+    "description": "Display\n                            5.20-inch\n                            (1080x1920)\nProcessor\n                            Qualcomm\n                            Snapdragon 801\nFront Camera\n                            2MP\nRear Camera\n                            13MP\nRAM\n                            2GB\nStorage\n                            16GB\nBattery\n                            Capacity 2300mAh\nOS\n                            Android\n                            4.4.4",
+    "numReviews": 0,
+    "price": 6709,
+    "countInStock": 0
+  },
+  {
+    "_id": "682964718522a610f4f63d93",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Vivo T2 Pro 5G",
+    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
+    "brand": "Vivo T2 Pro 5G",
+    "category": "mobile",
+    "description": "Display\n                            6.78-inch\n                            (1080x2400)\nProcessor\n                            MediaTek Dimensity\n                            7200\nFront Camera\n                            16MP\nRear Camera\n                            64MP + 2MP\nRAM\n                            8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 4600mAh\nOS\n                            Android 13",
+    "numReviews": 0,
+    "price": 2009,
+    "countInStock": 0
+  },
+  {
+    "_id": "store_6.187127687774543",
+    "user": "aidfe7.466418311221174",
+    "name": "Vivo Y29 5G",
+    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
+    "brand": "Vivo Y29 5G",
+    "category": "mobile",
+    "description": "Display\n                            6.68-inch\n                            (720x1608)\nProcessor\n                            MediaTek Dimensity\n                            6300\nFront Camera\n                            8MP\nRear Camera\n                            50MP +\n                            0.08MP\nRAM\n                            4GB, 6GB,\n                            8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 5500mAh\nOS\n                            Android 14",
     "reviews": [],
     "rating": 1,
     "numReviews": 2,
-    "price": "22,999",
+    "price": "13,999",
     "countInStock": 3
   },
   {
-    "_id": "store_2.893743298473",
-    "user": "aidfe3.928374928374",
-    "name": "Motorola G84",
+    "_id": "682964718522a610f4f63dad",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Vivo V25 5G",
     "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
+    "brand": "Vivo V25 5G",
     "category": "mobile",
-    "description": "Display 6.55-inch (1080x2400), Processor Snapdragon 695, Front Camera 16MP, Rear Camera 50MP + 8MP, RAM 8GB, Storage 128GB, Battery 5000mAh, OS Android 14",
-    "reviews": [],
-    "rating": 4,
-    "numReviews": 5,
-    "price": "18,499",
-    "countInStock": 6
+    "description": "Display\n                            6.44-inch\n                            (1080x2404)\nProcessor\n                            MediaTek Dimensity\n                            900\nFront Camera\n                            50MP\nRear Camera\n                            64MP + 8MP +\n                            2MP\nRAM\n                            8GB, 12GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 4,500mAh\nOS\n                            Android 12",
+    "numReviews": 0,
+    "price": 7267,
+    "countInStock": 0
   },
   {
-    "_id": "store_3.123987129873",
-    "user": "aidfe3.555893893",
-    "name": "Motorola Razr 40 Ultra",
+    "_id": "682964718522a610f4f63da3",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Vivo T4x 5G",
     "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
+    "brand": "Vivo T4x 5G",
     "category": "mobile",
-    "description": "Display 6.9-inch FHD+ AMOLED, Processor Snapdragon 8+ Gen 1, Front Camera 32MP, Rear Camera 12MP + 13MP, RAM 8GB, Storage 256GB, Battery 3800mAh, OS Android 13",
-    "reviews": [],
-    "rating": 5,
-    "numReviews": 10,
-    "price": "84,999",
-    "countInStock": 2
+    "description": "Display\n                            6.72-inch\n                            (1080x2408)\nProcessor\n                            MediaTek Dimensity\n                            7300\nFront Camera\n                            8MP\nRear Camera\n                            50MP + 2MP\nRAM\n                            6GB, 8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 6500mAh\nOS\n                            Android 15",
+    "numReviews": 0,
+    "price": 6674,
+    "countInStock": 0
+  },{
+    "_id": "682964718522a610f4f63db3",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Samsung Galaxy Tab S10 FE+",
+    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
+    "brand": "Samsung Galaxy Tab S10 FE+",
+    "category": "mobile",
+    "description": "Display\n                            13.10-inch\n                            (1440x2304)\nFront Camera\n                            12MP\nRAM\n                            8GB\nOS\n                            Android 15\nStorage\n                            128GB\nRear Camera\n                            13MP\nBattery\n                            Capacity 10090mAh",
+    "numReviews": 0,
+    "price": 151,
+    "countInStock": 0
   },
   {
-    "_id": "store_4.219837123981",
-    "user": "aidfe3.721983729183",
-    "name": "Motorola Edge 40",
+    "_id": "682964718522a610f4f63d9d",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Samsung Galaxy M53 5G",
     "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
+    "brand": "Samsung Galaxy M53 5G",
     "category": "mobile",
-    "description": "Display 6.55-inch OLED, Processor Dimensity 8020, Front Camera 32MP, Rear Camera 50MP + 13MP, RAM 8GB, Storage 256GB, Battery 4400mAh, OS Android 13",
-    "reviews": [],
-    "rating": 3,
-    "numReviews": 4,
-    "price": "29,999",
-    "countInStock": 5
+    "description": "Display\n                            6.70-inch\n                            (1080x2400)\nProcessor\n                            MediaTek Dimensity\n                            900\nFront Camera\n                            32MP\nRear Camera\n                            108MP + 8MP + 2MP\n                            + 2MP\nRAM\n                            6GB, 8GB\nStorage\n                            128GB\nBattery\n                            Capacity 5000mAh\nOS\n                            Android 12",
+    "numReviews": 0,
+    "price": 8676,
+    "countInStock": 0
   },
   {
-    "_id": "store_5.987129837192",
-    "user": "aidfe3.112233445566",
-    "name": "Motorola G73",
+    "_id": "682964718522a610f4f63daf",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Samsung Galaxy A14 5G",
     "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
+    "brand": "Samsung Galaxy A14 5G",
     "category": "mobile",
-    "description": "Display 6.5-inch FHD+ LCD, Processor Dimensity 930, Front Camera 16MP, Rear Camera 50MP + 8MP, RAM 8GB, Storage 128GB, Battery 5000mAh, OS Android 13",
-    "reviews": [],
-    "rating": 4,
-    "numReviews": 8,
-    "price": "16,999",
-    "countInStock": 10
+    "description": "Display\n                            6.60-inch\n                            (1080x2408)\nProcessor\n                            2.2Ghz MHz\n                            octa-core\nFront Camera\n                            13MP\nRear Camera\n                            50MP + 2MP +\n                            2MP\nRAM\n                            4GB, 6GB,\n                            8GB\nStorage\n                            64GB, 128GB\nBattery\n                            Capacity 5000mAh\nOS\n                            Android 13",
+    "numReviews": 0,
+    "price": 4956,
+    "countInStock": 0
   },
   {
-    "_id": "store_6.776655443322",
-    "user": "aidfe3.334455667788",
-    "name": "Motorola G13",
-    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
-    "category": "mobile",
-    "description": "Display 6.5-inch HD+, Processor Helio G85, Front Camera 8MP, Rear Camera 50MP, RAM 4GB, Storage 128GB, Battery 5000mAh, OS Android 13",
-    "reviews": [],
-    "rating": 3,
-    "numReviews": 3,
-    "price": "9,499",
-    "countInStock": 15
-  },
-  {
-    "_id": "store_7.112358132134",
-    "user": "aidfe3.999888777666",
-    "name": "Motorola E13",
-    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
-    "category": "mobile",
-    "description": "Display 6.5-inch HD+ LCD, Processor Unisoc T606, Front Camera 5MP, Rear Camera 13MP, RAM 2GB, Storage 64GB, Battery 5000mAh, OS Android Go",
-    "reviews": [],
-    "rating": 2,
-    "numReviews": 1,
-    "price": "6,499",
-    "countInStock": 25
-  },
-  {
-    "_id": "store_8.141421356237",
-    "user": "aidfe3.123456789012",
-    "name": "Motorola Edge 50 Pro",
-    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
-    "category": "mobile",
-    "description": "Display 6.7-inch P-OLED, Processor Snapdragon 7 Gen 3, Front Camera 50MP, Rear Camera 50MP + 13MP + 10MP, RAM 12GB, Storage 256GB, Battery 4500mAh, OS Android 14",
-    "reviews": [],
-    "rating": 5,
-    "numReviews": 12,
-    "price": "31,999",
-    "countInStock": 4
-  },
-  {
-    "_id": "store_9.161803398875",
-    "user": "aidfe3.333222111000",
-    "name": "Motorola G32",
-    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
-    "category": "mobile",
-    "description": "Display 6.5-inch FHD+ LCD, Processor Snapdragon 680, Front Camera 16MP, Rear Camera 50MP + 8MP + 2MP, RAM 4GB, Storage 128GB, Battery 5000mAh, OS Android 12",
-    "reviews": [],
-    "rating": 3,
-    "numReviews": 7,
-    "price": "10,499",
-    "countInStock": 12
-  },
-  {
-    "_id": "store_10.314159265359",
-    "user": "aidfe3.101010101010",
-    "name": "Motorola Edge 30",
-    "image": "https://i.gadgets360cdn.com/products/small/edge-60-fusion-motorola-db-240x180-1743575993.jpg?downsize=*:90",
-    "brand": "Motorola",
-    "category": "mobile",
-    "description": "Display 6.5-inch AMOLED, Processor Snapdragon 778G+, Front Camera 32MP, Rear Camera 50MP + 50MP, RAM 6GB, Storage 128GB, Battery 4020mAh, OS Android 12",
-    "reviews": [],
-    "rating": 4,
-    "numReviews": 6,
-    "price": "24,999",
-    "countInStock": 8
-  },
-  {
-    "_id": "store_8.466782465441424",
-    "user": "aidfe1.0189769601158005",
-    "name": "Vivo Y300 5G",
+    "_id": "682964718522a610f4f63dab",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Oppo A3X 5G",
     "image": "https://i.gadgets360cdn.com/products/small/vivo-y300-5g-vivo-db-240x180-1732175847.jpg?downsize=*:90",
-    "brand": "Vivo Y300 5G",
+    "brand": "Oppo A3X 5G",
     "category": "mobile",
-    "description": "Display\n                            6.67-inch\n                            (1080x2400)\nProcessor\n                            Qualcomm\n                            Snapdragon 4 Gen 2\nFront Camera\n                            32MP\nRear Camera\n                            50MP + 2MP\nRAM\n                            8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 5000mAh\nOS\n                            Android 14",
-    "reviews": [],
-    "rating": 1,
-    "numReviews": 2,
-    "price": "19,799",
-    "countInStock": 3
+    "description": "Display\n                            6.67-inch\n                            (720x1604)\nProcessor\n                            MediaTek Dimensity\n                            6300\nFront Camera\n                            5MP\nRear Camera\n                            8MP\nRAM\n                            4GB\nStorage\n                            64GB, 128GB\nBattery\n                            Capacity 5100mAh\nOS\n                            Android 14",
+    "numReviews": 0,
+    "price": 6117,
+    "countInStock": 0
   },
   {
-    "_id": "store_4.654001524993909",
-    "user": "aidfe2.2111401146501275",
-    "name": "Samsung Galaxy S25 Ultra",
+    "_id": "682964718522a610f4f63db5",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Oppo A5 Pro 5G (2025)",
     "image": "https://i.gadgets360cdn.com/products/small/samsung-galaxy-s25-ultra-240x180-1738321285.jpg?downsize=*:90",
-    "brand": "Samsung Galaxy S25 Ultra",
+    "brand": "Oppo A5 Pro 5G (2025)",
     "category": "mobile",
-    "description": "Display\n                            6.90-inch\n                            (1400x3120)\nProcessor\n                            Snapdragon 8\n                            Elite\nFront Camera\n                            12MP\nRear Camera\n                            200MP + 50MP +\n                            50MP + 10MP\nRAM\n                            12GB\nStorage\n                            256GB, 512GB,\n                            1TB\nBattery\n                            Capacity 5000mAh\nOS\n                            Android 15",
-    "reviews": [],
-    "rating": 1,
-    "numReviews": 2,
-    "price": "1,07,999",
-    "countInStock": 3
+    "description": "Display\n                            6.67-inch\n                            (720x1604)\nProcessor\n                            MediaTek Dimensity\n                            6300\nFront Camera\n                            8MP\nRear Camera\n                            50MP + 2MP\nRAM\n                            8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 5800mAh\nOS\n                            Android 15",
+    "numReviews": 0,
+    "price": 9021,
+    "countInStock": 0
   },
   {
-    "_id": "store_5.070531792318455",
-    "user": "aidfe3.932039455926244",
-    "name": "Oppo Reno 8 Pro",
+    "_id": "682964718522a610f4f63db1",
+    "user": "6819f3bd808190ec8f62a953",
+    "name": "Oppo A5 Pro 5G (2025)",
     "image": "https://i.gadgets360cdn.com/products/small/Oppo-reno-8-pro-DB-240x180-1653372156.jpg?downsize=*:90",
-    "brand": "Oppo Reno 8 Pro",
+    "brand": "Oppo A5 Pro 5G (2025)",
     "category": "mobile",
-    "description": "Display\n                            6.70-inch\n                            (2412x1080)\nProcessor\n                            MediaTek Dimensity\n                            8100 5G\nFront Camera\n                            32MP\nRear Camera\n                            50MP + 8MP +\n                            2MP\nRAM\n                            12GB\nStorage\n                            256GB\nBattery\n                            Capacity 4500mAh\nOS\n                            Android 12",
-    "reviews": [],
-    "rating": 1,
-    "numReviews": 2,
-    "price": "26,999",
-    "countInStock": 3
+    "description": "Display\n                            6.67-inch\n                            (720x1604)\nProcessor\n                            MediaTek Dimensity\n                            6300\nFront Camera\n                            8MP\nRear Camera\n                            50MP + 2MP\nRAM\n                            8GB\nStorage\n                            128GB,\n                            256GB\nBattery\n                            Capacity 5800mAh\nOS\n                            Android 15",
+    "numReviews": 0,
+    "price": 9200,
+    "countInStock": 0
   }
 ];
 

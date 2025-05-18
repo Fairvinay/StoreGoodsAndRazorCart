@@ -7,12 +7,21 @@ import { dirname, join } from 'path';
 import { JSDOM } from 'jsdom';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from "dotenv";
+import ProductModel from "./models/productModel.js";
+import UserModel from "./models/userModel.js";
+//const User = require('../models/UserModel'); // this should point to your user model
+import connectDB from "./config/dbworker.js";
 import axios from 'axios';
 //import fetch from 'node-fetch';
 import { tidy } from 'htmltidy2';
 import pLimit from 'p-limit';
 //const pLimit = require('p-limit');
 //var promiseLimit = require('promise-limit')
+
+//const pLimit = require('p-limit');
+//var promiseLimit = require('promise-limit')
+let globalAdminUser = undefined;
 
 function isEmptyObject(obj) {
   return obj && typeof obj === 'object' && !Array.isArray(obj) && Object.keys(obj).length === 0;
@@ -25,6 +34,43 @@ function serializeElement(el) {
     html: el.outerHTML
   };
 }
+
+async function waitForDBUser( timeout = 5000) {
+  return new Promise(async (resolve, reject) => {
+    const interval = 4900;
+    let elapsed = 0;
+
+    const email = 'vvanvekar@gmail.com';
+    const present = await UserModel.find({email: email   }); //isAdmin: true await UserModel.findOne({ email });  const admin = await 
+    if (present) {
+     // clearInterval(timer);
+      globalAdminUser = present;
+      console.log(" globalAdminUser connected id ",globalAdminUser.id);
+      resolve("Connected with Admin user DB");
+     
+    } else /*if ((elapsed += interval) >= timeout) */{
+     //  clearInterval(timer);
+      reject(new Error('Timeout: Admin User DB Connection Failed '));
+    }
+
+    /*const timer = setInterval(async () => {
+      const email = 'vvanvekar@gmail.com';
+      const present = await UserModel.findOne({ isAdmin: true }); //await UserModel.findOne({ email });  const admin = await 
+      if (present) {
+        clearInterval(timer);
+        globalAdminUser = present;
+        console.log(" globalAdminUser connected id ",globalAdminUser.id);
+        resolve("Connected with Admin user DB");
+       
+      } else if ((elapsed += interval) >= timeout) {
+        clearInterval(timer);
+        reject(new Error('Timeout: Admin User DB Connection Failed '));
+      }
+    }, interval);*/
+  });
+}
+
+
 async function waitForElements(document , selector, timeout = 5000) {
   return new Promise((resolve, reject) => {
     const interval = 100;
@@ -103,7 +149,7 @@ async function waitForExactProdElements(document , selector, expectedCount = 1, 
       const found = await document.querySelectorAll(selector);
       console.log(`[${Date.now() - start}ms] Found ${found.length} elements for ${selector}`);
       let tkp = JSON.stringify(found);
-      console.log(` found  ${tkp} `);
+    //  console.log(` found  ${tkp} `);
       let innerElem = [] ;
       const minLength = Math.min(found.length,13);
 
@@ -139,7 +185,7 @@ async function waitForExactProdElements(document , selector, expectedCount = 1, 
         //await waitForExactElements(document ,'div._flx._bwrp',4);
 
     //  }
-    console.log(" product  ",JSON.stringify(prodA));
+   // console.log(" product  ",JSON.stringify(prodA));
       return prodA ;
     };
 
@@ -169,7 +215,7 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
       const found = await document.querySelectorAll(selector);
       console.log(`[${Date.now() - start}ms] Found ${found.length} elements for ${selector}`);
       let tkp = JSON.stringify(found);
-      console.log(` found  ${tkp} `);
+    //  console.log(` found  ${tkp} `);
       let innerElem = [] ;
       const minLength = Math.min(found.length,13);
 
@@ -209,7 +255,7 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
         //await waitForExactElements(document ,'div._flx._bwrp',4);
 
     //  }
-        console.log(" price  ",JSON.stringify(prodA));
+     //  console.log(" price  ",JSON.stringify(prodA));
       return prodA;
     };
 
@@ -232,10 +278,21 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
 }
 (async () => {
   try {
-    const { brand, page } = workerData;
+
+  
+   /// const email = 'vvanvekar@gmail.com';
+   // const present = await UserModel.findOne({ email });
+  
+    const { brand, page , user} = workerData;
+    if (!user) {
+      console.log(" Admin User not found");
+     
+      
+    }
     const query = `${brand}&pageNumber=${page}`;
     const url = `https://gadgets360.com/search?searchtext=${query}`;
     let results = [];
+    let prodResults = [];
     /*if (!fs.existsSync('./data')) {
       fs.mkdirSync('./data');
     }*/
@@ -259,7 +316,7 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
       // Ensure the directory exists
      //  const dir = path.dirname(filePath);
      
-     await axios.get(url).then(response => {
+     await axios.get(url).then(async response => {
         if (!response.statusText && response.status !=200) {
           throw new Error(`HTTP error! status: ${response.status}  ${response.statusText}
             response.ok ${response.ok}`);
@@ -294,21 +351,33 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
                 //Array.from(document.querySelectorAll('div._flx._bwrp'));
               console.log(`✅ Found product  ${items.length} items`);
               console.log(`Found pricebuy  ${items.length} items`);
-              console.log(" product  -->  ",JSON.stringify(items));
-              console.log(" price  -->  ",JSON.stringify(pricebuy));
+             // console.log(" product  -->  ",JSON.stringify(items));
+              //console.log(" price  -->  ",JSON.stringify(pricebuy));
                 // GET BOTHE the arrays  and form a merged product array with price 
                 const minLength = Math.min(items.length, pricebuy.length);
                const merged = [];
             for (let i = 0; i < minLength; i++) { 
                      let prd = items[i];
-                     let prc = pricebuy[i];
-                    let  totalProd  = Object.assign({}, prd, prc);
+                     let price = pricebuy[i];
+                     let rp = price.rupee!==undefined ? price.rupee  : '';
+                   // console.log(" price  -->  ",JSON.stringify(price));
+                    let  totalProd  = Object.assign({}, prd, { price : rp});
+                    console.log(` ${JSON.stringify(totalProd.title) } `,JSON.stringify(totalProd.price));
                     merged.push(totalProd);
             }
             await Promise.all( merged.map(async (item) => {
               await extractDetailResults(item)
-              .then(data => { console.log(data); 
+              .then(data => { //console.log(data); 
               // const fileName = `${brand}Page${page}.json`;
+               //const filePath =  path.resolve(dir,fileName ); //path.join(__dirname, 'data', fileName);
+               //const fileDetailName = `${brand}PageDetail${page}.json`;
+               //  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));  
+              
+
+                //const fileName = `${brand}Page${page}.json`;
+
+              //  parentPort.postMessage(data);
+                 prodResults.push(data);
                //const filePath =  path.resolve(dir,fileName ); //path.join(__dirname, 'data', fileName);
                //const fileDetailName = `${brand}PageDetail${page}.json`;
                //  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));  
@@ -424,7 +493,7 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
 
          
 
-             );
+             );*/
              
            
             /*.then(data => { console.log(data); 
@@ -451,24 +520,159 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
         });
         // let jsonData = fetHTML();
 
-         fetHTML().then(data => { console.log(data); 
-
-          const fileName = `${brand}Page${page}.json`;
-          parentPort.postMessage({ success: true, file: fileName });
-           
-         });
-        
-
+       await   fetHTML();
+        if (prodResults.length > 0) {
+          console.log(" fetHTML over  " );
+          console.log(" products fetched "+prodResults.length);
+        }
+        return prodResults;
 
     })
-    .then(data => { console.log(data); 
+    .then(data => { 
+      console.log(` axios get (${url}) over ` );
+      console.log(" axios get then ", Array.isArray(data) ? data.length : JSON.stringify(data));  
+      if (prodResults.length > 0) {
+        console.log("  axios get over  " );
+        console.log(" products fetched "+prodResults.length);
+      }
+      return prodResults;
   
      } )
     .catch(error => {
-      console.error('Fetch error:', error);
+      console.error(' axios get (${url}) Fetch error:', error);
     });
      
 
+    function tidyAsync(rawHtml, item , id, userGold, prodDescArr, prodImgHref, price , reqProduct, options = {}) {
+      return new Promise((resolve, reject) => {
+          tidy(rawHtml, { doctype: 'html5', indent: true }, async (err, cleanedHtml) => {
+            if (err) {
+              console.error('HTML Tidy Error:', err);
+            return reject(err);
+            }
+          let prodDesc = []; let   prodImg='';
+            const dom = new JSDOM(cleanedHtml);
+            const documentD = dom.window.document;
+           // const contDocument = contDom.window.document;
+              prodDesc = documentD.querySelectorAll('._pdsd'); //documentD.querySelectorAll('div._pdsd');
+             if(prodDesc.length  > 0){
+                // req = req[0].nextElementSibling.textContene  
+                   prodDesc.forEach(element => {
+                  //  console.log('element:', element.textContent);
+                      let descSplit = element.textContent.split('\n');
+                      if( descSplit.length >1){
+                       // console.log('key :', descSplit[0]);
+                       // console.log('value :', descSplit[1]);
+                        //jsun[descSplit[0]] = descSplit[1];
+                      }
+                      prodDescArr.push(element.textContent.trim());   
+                   });
+                // console.log('product descript ', JSON.stringify(prodDescArr));   
+             }
+             prodImg =  documentD.querySelectorAll('._pdmimg'); // .__arModalBtn ._flx
+             if(prodImg !==null && prodImg !== undefined  ){
+                 // fetch the image url
+                 if(prodImg.childNodes  !== null && prodImg.childNodes !== undefined  && prodImg.childNodes.length > 0) {
+                   if(prodImg.childNodes [0] !==null && prodImg.childNodes[0] !== undefined  ){
+                     prodImgHref = prodImg.childNodes[0];
+                    if(prodImgHref.src !==null && prodImgHref.src !== undefined  ){
+                    // console.log('image href:', prodImgHref.src);
+                       jsun.image = prodImgHref.src;
+                    }
+                 }
+               }
+                
+             }
+            // request prodect with image and detais descrip attributes
+            let t =item.title;
+            let img = item.imgsrc;
+            reqProduct = { t , img, prodDescArr};
+
+          //console.log('reqProduct:', reqProduct);
+            const fileDetailName = `${brand}PageDetail${page}.json`;
+            const fileDetailPath =  path.resolve(dir,fileDetailName );
+               
+            reqProduct = { t , img, prodDescArr , price };
+          let product = undefined;
+            // 'aidfe'+Math.abs(Math.random()*10)
+            //for( let kk=0; kk<dr.length; kk++){
+            // 'store_'+Math.abs(Math.random()*10)
+           
+           // productModels.push(product)
+            //  products = productModels
+         // }
+        // 
+       // await waitForDBUser () ;
+       /* if (!globalAdminUser) {
+           console.log("Second Try  Admin User not found");
+              //process.exit(0); // ✅ Terminates the worker from inside
+          }
+       
+          
+        if (globalAdminUser) {
+          const productMong = await ProductModel.create({
+            name: reqProduct.t,
+            price: parseFloat(reqProduct.price),
+            user: globalAdminUser._id,
+            image: reqProduct.img ,
+            brand:  reqProduct.t,
+            category:'mobile',
+            countInStock: 0,
+            numReviews: 0,
+            description:  prodDescArr.join('\n'),
+          });
+            product  =  { _id :  productMong._id , user: globalAdminUser._id,
+                name: reqProduct.t,
+                image: reqProduct.img ,
+                brand: reqProduct.t,
+                category: 'mobile',
+            
+                description:   prodDescArr.join('\n'),
+          //  reviews:  [],
+           // rating:  1,   
+            numReviews:0,
+                price:   reqProduct.price,
+            countInStock:0,
+              } ;
+             // productModels.push(product)
+         fs.writeFileSync(fileDetailPath, JSON.stringify(product, null, 2));
+              //  products = productModels
+        }
+        else {
+           // }
+           product  =  { _id :   id , user: userGold,
+            name: reqProduct.t,
+            image: reqProduct.img ,
+            brand: reqProduct.t,
+            category: 'mobile',
+          // 
+            description:   prodDescArr.join('\n'),
+            
+           // fs.writeFileSync(fileDetailPath, JSON.stringify(product, null, 2));
+             
+            numReviews:0,
+            price:   reqProduct.price,
+            countInStock:0,
+          } ; 
+          console.log('admin user not found PRODUCT FETCHED  COULD not be CACHED in DB and FILE');
+        }*/
+        product  =  { _id :   id , user: userGold,
+          name: reqProduct.t,
+          image: reqProduct.img ,
+          brand: reqProduct.t,
+          category: 'mobile',
+
+          description:   prodDescArr.join('\n'),
+
+         // rating:  1,   
+          numReviews:0,
+          price:   reqProduct.price,
+          countInStock:0,
+        } ; 
+        return resolve(product);
+          });
+      });
+    }
     async function extractDetailResults(item) {
      
       let jsun = ''; let  prodDesc ='' , prodImg='';
@@ -488,80 +692,14 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
           });
         
           const rawHtml = await response.text();
-        
-          tidy(rawHtml, { doctype: 'html5', indent: true }, async (err, cleanedHtml) => {
-            if (err) {
-              console.error('HTML Tidy Error:', err);
-              return;
-            }
-        
-            const dom = new JSDOM(cleanedHtml);
-            const documentD = dom.window.document;
-           // const contDocument = contDom.window.document;
-              prodDesc = documentD.querySelectorAll('._pdsd'); //documentD.querySelectorAll('div._pdsd');
-             if(prodDesc.length  > 0){
-                // req = req[0].nextElementSibling.textContene  
-                   prodDesc.forEach(element => {
-                      console.log('element:', element.textContent);
-                      let descSplit = element.textContent.split('\n');
-                      if( descSplit.length >1){
-                          console.log('key :', descSplit[0]);
-                          console.log('value :', descSplit[1]);
-                          jsun[descSplit[0]] = descSplit[1];
-                      }
-                      prodDescArr.push(element.textContent.trim());   
-                   });
-             }
-             prodImg =  documentD.querySelectorAll('._pdmimg'); // .__arModalBtn ._flx
-             if(prodImg !==null && prodImg !== undefined  ){
-                 // fetch the image url
-                 if(prodImg.childNodes  !== null && prodImg.childNodes !== undefined  && prodImg.childNodes.length > 0) {
-                   if(prodImg.childNodes [0] !==null && prodImg.childNodes[0] !== undefined  ){
-                     prodImgHref = prodImg.childNodes[0];
-                    if(prodImgHref.src !==null && prodImgHref.src !== undefined  ){
-                       console.log('image href:', prodImgHref.src);
-                       jsun.image = prodImgHref.src;
-                    }
-                 }
-               }
-                
-             }
-            // request prodect with image and detais descrip attributes
-            let t =item.title;
-            let img = item.imgsrc;
-            reqProduct = { t , img, prodDescArr};
-
-            console.log('reqProduct:', reqProduct);
-            const fileDetailName = `${brand}PageDetail${page}.json`;
-            const fileDetailPath =  path.resolve(dir,fileDetailName );
-               
-            reqProduct = { t , img, prodDescArr , price };
-            // 'aidfe'+Math.abs(Math.random()*10)
-            //for( let kk=0; kk<dr.length; kk++){
-            // 'store_'+Math.abs(Math.random()*10)
-              const product  =  { _id :  id , user: userGold ,
-                name: reqProduct.t,
-                image: reqProduct.img ,
-                brand: reqProduct.t,
-                category: 'mobile',
-            
-                description:   prodDescArr.join('\n'),
-                reviews:  [],
-                rating:  1, 
-                numReviews:  2,
-                price:   reqProduct.price,
-                countInStock: 3 ,
-              } ;
-             // productModels.push(product)
-              //  products = productModels
-           // }
-          // 
-            
-            fs.writeFileSync(fileDetailPath, JSON.stringify(product, null, 2));
-             
-
-
-          });
+          try {
+            let opt = {"emptyText": "" };
+            const productFromHTML = await tidyAsync(rawHtml ,item,  id, userGold, prodDescArr, 
+              prodImgHref, price , reqProduct, opt);
+             return productFromHTML;
+          } catch (error) {
+            console.error('Error tidying HTML:', error);
+           }
         
         } catch (error) {
           console.error('❌ Fetch error:', error.message);
@@ -720,8 +858,8 @@ async function waitForExactPriceElements(document , selector, expectedCount = 1,
 
   
 
-
-
+  parentPort.postMessage(prodResults);
+  return prodResults;
 
 
 
