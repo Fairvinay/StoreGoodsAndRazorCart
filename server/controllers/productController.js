@@ -423,18 +423,58 @@ const getProductDetail = asyncHandler(async (req, res, next) => {
   const id = req.params.id;
   let brand = id; let findByBrand = false;
   if(isNaN(Number(id))){
+   let product = undefined ; 
+    try { 
+      product = await ProductModel.findById(id);
+     }
+     catch (error) {
+      console.log("DB does not continain the product "+id , error);
+     }    
+    if (product) {
+   // return res.status(200).json(product);
+       console.log('found the   reuested product in DB :' );	
+      let reqProd = product;
+      if(reqProd !== undefined && Array.isArray(reqProd)){
+        console.log("found the  multiple products from emededed array :" );
+        console.log("reqProd[0] : ",JSON.stringify(reqProd[0])  );
+        console.log("reqProd[0] length: ",JSON.stringify(reqProd.length)  );
+        console.log("reqProd  : ",JSON.stringify(reqProd )  );
+        return res.status(200).json(reqProd);
+       }
+       else if ( reqProd !== undefined){
+        console.log("found the product from emededed array :" );
+        return res.status(200).json(reqProd);
+       }
+
+     } else {
+   // res.status(404);
+        console.log('no  product in DB :' );	
+    //throw new Error("Product Not Found");
+     }
+  }
+ 
+
+
+
+  if(isNaN(Number(id))){
     findByBrand = true;
     if (brands.includes(id)) {
       brand = id;
     }
     else { 
-      brand = "oppo";   // deafult
-    } brands.forEach((b) => {
-      if (b === id) {
-        brand = b;
-      }
-    })
-    console.log("user searching using brand is :" + brand);
+     //brand = "oppo";   // deafult
+    } 
+      let st = sampleProductDataArray.filter(product => {
+      const internal_id = product?._id;
+      return typeof internal_id === 'string' && typeof id === 'string'
+        ?internal_id.toLowerCase().equals(id.toLowerCase())     // exat match 
+        // internal_id.toLowerCase().includes(id.toLowerCase())
+        : false;
+      }); 
+      console.log(" product from embeded data :" + JSON.stringify(st) );
+      brand =  brands.find((b) =>st.brand.indexOf(b)  > -1);
+   
+    console.log("user searching using brand is :" + brand );
   }
   else {
     console.log("user searching using product id is :" + id);
@@ -470,9 +510,10 @@ const getProductDetail = asyncHandler(async (req, res, next) => {
         let mb = await getStaticProducts(brand);
 
     if(mb !== undefined && mb !== null){
-      console.log("no static data found from json file "+ brand); 
+      console.log("some static data found from json file fora "+ brand); 
+     
     }else {
-      console.log("loads emeded controller static data "+ brand); 
+      console.log("looking for static embedded data "+ brand); 
       mb = sampleProductDataArray;
     }
        keywordData = mb.filter(product => {
@@ -494,6 +535,11 @@ const getProductDetail = asyncHandler(async (req, res, next) => {
    }
    else { 
     reqProd = data;
+    if ( reqProd !== undefined){
+      console.log("found the product  json or sampleemededed array :" );
+      return res.status(200).json(reqProd);
+     }
+
    }
    const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
